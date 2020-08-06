@@ -9,5 +9,5 @@ pushd ..\..\build
 REM 64-bit build
 del *.pdb > NUL 2> NUL
 cl %CommonCompilerFlags% ..\cubicsquarecreft\code\cubicsquarecreft.cpp -Fmcubicsquarecreft.map -LD /link -incremental:no -opt:ref /PDB:cubicsquarecreft_%random%.pdb /EXPORT:GameGetSoundSamples /EXPORT:GameUpdateAndRender
-cl %CommonCompilerFlags% ..\handmade\code\win32_cubicsquarecreft.cpp -Fmwin32_cubicsquarecreft.map /link %CommonLinkerFlags%
+cl %CommonCompilerFlags% ..\cubicsquarecreft\code\win32_cubicsquarecreft.cpp -Fmwin32_cubicsquarecreft.map /link %CommonLinkerFlags%
 popd
