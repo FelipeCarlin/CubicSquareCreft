@@ -51,6 +51,40 @@ Win32MainWindowCallback(HWND Window, UINT Message,
 {
     LRESULT Result = 0;
 
+    switch(Message)
+    {
+        case WM_CREATE:
+        {
+            OutputDebugStringA("WM_CREATE\n");
+        } break;
+        
+        case WM_SIZE:
+        {
+            OutputDebugStringA("WM_SIZE\n");
+        } break;
+        
+        case WM_DESTROY:
+        {
+            OutputDebugStringA("WM_DESTROY\n");
+        } break;
+
+        case WM_CLOSE:
+        {
+            OutputDebugStringA("WM_CLOSE\n");
+            GlobalRunning = false;
+        } break;
+
+        case WM_ACTIVATEAPP:
+        {
+            OutputDebugStringA("WM_ACTIVATEAPP\n");
+        } break;
+
+        default:
+        {
+            Result = DefWindowProc(Window, Message, WParam, LParam);
+        } break;
+    }
+    
     return Result;
 }
 
@@ -60,18 +94,25 @@ WinMain(HINSTANCE Instance,
         PSTR CommandLine,
         INT nCmdShow)
 {
-    MessageBoxA(0, "Holi", "CubicSquareCreft",
-                MB_OK|MB_ICONINFORMATION);
+    HICON CubicIcon =
+        (HICON)LoadImageA(NULL,             
+                          "Icon.ico",       
+                          IMAGE_ICON,       
+                          0,                
+                          0,  
+                          LR_LOADFROMFILE|LR_DEFAULTSIZE|LR_SHARED);
     
     WNDCLASSA WindowClass = {};
-    WindowClass.style = CS_VREDRAW|CS_HREDRAW|CS_OWNDC;
+
+    WindowClass.style = CS_VREDRAW|CS_HREDRAW;
     WindowClass.lpfnWndProc = Win32MainWindowCallback;
     WindowClass.hInstance = Instance;
-//   WindowClass.hIcon
+    WindowClass.hIcon = CubicIcon;
     WindowClass.lpszClassName = "CubicSquareCreftWindowClass";
 
     if(RegisterClassA(&WindowClass))
     {
+
         HWND Window =
             CreateWindowExA(
                 0, //WS_EX_TOPMOST|WS_EX_LAYERED,
@@ -88,14 +129,32 @@ WinMain(HINSTANCE Instance,
                 0);
         
         if(Window)
-        {            
+        {
             GlobalRunning = true;
             
             while(GlobalRunning)
             {
-                
+                MSG Message;
+                BOOL MessageResult = GetMessage(&Message, 0, 0, 0);
+                if(MessageResult > 0)
+                {
+                    TranslateMessage(&Message);
+                    DispatchMessage(&Message);
+                }
+                else
+                {
+                    break;
+                }
             }
         }
+        else
+        {
+            // TODO(felipe): Logging.
+        }
+    }
+    else
+    {
+        // TODO(felipe): Logging.
     }
     
     return 0;
