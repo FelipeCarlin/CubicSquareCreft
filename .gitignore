@@ -1,0 +1,12 @@
+# Binaries
+/build/
+
+# Visual Studio files and folder
+.vs/
+**.sln
+**.vcxproj
+**.vcxproj.filters
+**.vcxproj.user
+
+#miscellaneous files
+Desktop.ini
