@@ -2,6 +2,6 @@
 
 call ..\cubicsquarecreft\misc\shell.bat
 
-pushd ..\cubicsquarecreft\code
+pushd cubicsquarecreft\code
 call build.bat
 popd
