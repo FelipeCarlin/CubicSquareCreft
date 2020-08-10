@@ -9,6 +9,6 @@
 **.vcxproj.filters
 **.vcxproj.user
 
-#miscellaneous files
+# Miscellaneous files
 Desktop.ini
-"Command Prompt.lnk"
+Command*Prompt.lnk
