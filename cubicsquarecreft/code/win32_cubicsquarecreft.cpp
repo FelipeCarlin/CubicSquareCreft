@@ -27,6 +27,7 @@ typedef float real32;
 typedef double real64;
 
 #include <windows.h>
+#include <gl/gl.h>
 
 #if CSC_SLOW
 // TODO(felipe): Complete assertion macro.
@@ -43,58 +44,84 @@ typedef double real64;
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
-global_variable bool32 GlobalRunning;
+
+global_variable bool32 globalRunning;
+
+
+struct win32_window_dimension
+{
+    int width;
+    int height;
+};
+
+internal win32_window_dimension
+Win32GetWindowDimension(HWND window)
+{
+    win32_window_dimension result;
+    
+    RECT clientRect;
+    GetClientRect(window, &clientRect);
+    result.width = clientRect.right - clientRect.left;
+    result.height = clientRect.bottom - clientRect.top;
+
+    return result;
+}
 
 internal LRESULT CALLBACK
-Win32MainWindowCallback(HWND Window, UINT Message,
-                        WPARAM WParam, LPARAM LParam)
+Win32MainWindowCallback(HWND window, UINT message,
+                        WPARAM wParam, LPARAM lParam)
 {
-    LRESULT Result = 0;
+    LRESULT result = 0;
 
-    switch(Message)
+    switch(message)
     {
         case WM_CREATE:
         {
-            OutputDebugStringA("WM_CREATE\n");
         } break;
         
         case WM_SIZE:
         {
-            OutputDebugStringA("WM_SIZE\n");
         } break;
         
         case WM_DESTROY:
         {
-            OutputDebugStringA("WM_DESTROY\n");
         } break;
 
         case WM_CLOSE:
         {
-            OutputDebugStringA("WM_CLOSE\n");
-            GlobalRunning = false;
+            globalRunning = false;
         } break;
 
         case WM_ACTIVATEAPP:
         {
-            OutputDebugStringA("WM_ACTIVATEAPP\n");
+        } break;
+
+        case WM_PAINT:
+        {
+            PAINTSTRUCT paint;
+            HDC deviceContext = BeginPaint(window, &paint);
+            win32_window_dimension dimension = Win32GetWindowDimension(window);           
+//            Win32DisplayBufferInWindow(&GlobalBackBuffer, DeviceContext,
+//                                       Dimension.Width, Dimension.Height);
+            EndPaint(window, &paint);
         } break;
 
         default:
         {
-            Result = DefWindowProc(Window, Message, WParam, LParam);
+            result = DefWindowProc(window, message, wParam, lParam);
         } break;
     }
     
-    return Result;
+    return result;
 }
 
 INT
-WinMain(HINSTANCE Instance,
-        HINSTANCE PrevInstance,
-        PSTR CommandLine,
-        INT nCmdShow)
+WinMain(HINSTANCE instance,
+        HINSTANCE revInstance,
+        PSTR commandLine,
+        INT commandShow)
 {
-    HICON CubicIcon =
+    HICON cubicIcon =
         (HICON)LoadImageA(NULL,             
                           "Icon.ico",       
                           IMAGE_ICON,       
@@ -102,21 +129,21 @@ WinMain(HINSTANCE Instance,
                           0,  
                           LR_LOADFROMFILE|LR_DEFAULTSIZE|LR_SHARED);
     
-    WNDCLASSA WindowClass = {};
+    WNDCLASSA windowClass = {};
 
-    WindowClass.style = CS_VREDRAW|CS_HREDRAW;
-    WindowClass.lpfnWndProc = Win32MainWindowCallback;
-    WindowClass.hInstance = Instance;
-    WindowClass.hIcon = CubicIcon;
-    WindowClass.lpszClassName = "CubicSquareCreftWindowClass";
+    windowClass.style = CS_VREDRAW|CS_HREDRAW;
+    windowClass.lpfnWndProc = Win32MainWindowCallback;
+    windowClass.hInstance = instance;
+    windowClass.hIcon = cubicIcon;
+    windowClass.lpszClassName = "CubicSquareCreftWindowClass";
 
-    if(RegisterClassA(&WindowClass))
+    if(RegisterClassA(&windowClass))
     {
 
-        HWND Window =
+        HWND window =
             CreateWindowExA(
                 0, //WS_EX_TOPMOST|WS_EX_LAYERED,
-                WindowClass.lpszClassName,
+                windowClass.lpszClassName,
                 "CubicSquareCreft",
                 WS_OVERLAPPEDWINDOW|WS_VISIBLE,
                 CW_USEDEFAULT,
@@ -125,27 +152,60 @@ WinMain(HINSTANCE Instance,
                 CW_USEDEFAULT,
                 0,
                 0,
-                Instance,
+                instance,
                 0);
         
-        if(Window)
+        if(window)
         {
-            GlobalRunning = true;
+            HDC deviceContext = GetDC(window);
             
-            while(GlobalRunning)
+            PIXELFORMATDESCRIPTOR pfd = {};
+            pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+            pfd.nVersion = 1;
+            pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;    // Flags
+            pfd.iPixelType = PFD_TYPE_RGBA;        // The kind of framebuffer. RGBA or palette.
+            pfd.cColorBits = 32;                   // Colordepth of the framebuffer.
+            pfd.cDepthBits = 24;                   // Number of bits for the depthbuffer
+            pfd.cStencilBits = 8;                    // Number of bits for the stencilbuffer
+            pfd.dwLayerMask = PFD_MAIN_PLANE;
+
+            int pixelFormat = ChoosePixelFormat(deviceContext, &pfd);
+            Assert(pixelFormat);
+            SetPixelFormat(deviceContext, pixelFormat, &pfd);
+
+            HGLRC openGLContext = wglCreateContext(deviceContext);
+            wglMakeCurrent(deviceContext, openGLContext);
+
+            void *getExtension = wglGetProcAddress("wglGetExtensionsStringARB");
+            if(getExtension)
             {
-                MSG Message;
-                BOOL MessageResult = GetMessage(&Message, 0, 0, 0);
-                if(MessageResult > 0)
+                
+            }
+            else
+            {
+                // TODO(felipe): Logging.
+            }
+            
+            
+            globalRunning = true;
+            
+            while(globalRunning)
+            {
+                MSG message;
+                BOOL messageResult = GetMessage(&message, 0, 0, 0);
+                if(messageResult > 0)
                 {
-                    TranslateMessage(&Message);
-                    DispatchMessage(&Message);
+                    TranslateMessage(&message);
+                    DispatchMessage(&message);
                 }
                 else
                 {
                     break;
                 }
             }
+
+            wglMakeCurrent(0, openGLContext);
+            wglDeleteContext(openGLContext);
         }
         else
         {

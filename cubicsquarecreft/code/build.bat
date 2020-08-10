@@ -1,7 +1,7 @@
 @echo off
 
 set CommonCompilerFlags= -MTd -nologo -Gm- -GR- -EHa- -Od -Oi -WX -W4 -wd4201 -wd4100 -wd4189 -wd4505 -DCSC_INTERNAL=1 -DCSC_SLOW=1 -DCSC_WIN32=1 -FC -Z7 
-set CommonLinkerFlags= -incremental:no -opt:ref user32.lib Gdi32.lib winmm.lib
+set CommonLinkerFlags= -incremental:no -opt:ref user32.lib Gdi32.lib winmm.lib Opengl32.lib
 
 IF NOT EXIST ..\..\build mkdir ..\..\build
 pushd ..\..\build
