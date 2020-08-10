@@ -6,7 +6,7 @@ This is a minecraft copy written in c++, nothing more.
 
 ## Misc
 
-My preferred code style for C is different from Casey's.
+My preferred code style for C++ is:
 
 - snake_case for types, e.g. `game_world`
 - camelCase for variables, e.g. `globalRunning`
