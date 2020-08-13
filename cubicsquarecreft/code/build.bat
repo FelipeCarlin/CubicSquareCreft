@@ -1,10 +1,13 @@
 @echo off
 
 set CommonCompilerFlags= -MTd -nologo -Gm- -GR- -EHa- -Od -Oi -WX -W4 -wd4201 -wd4100 -wd4189 -wd4505 -DCSC_INTERNAL=1 -DCSC_SLOW=1 -DCSC_WIN32=1 -FC -Z7 
-set CommonLinkerFlags= -incremental:no -opt:ref user32.lib Gdi32.lib winmm.lib Opengl32.lib
+set CommonLinkerFlags= -incremental:no -opt:ref user32.lib Gdi32.lib winmm.lib Opengl32.lib win32_cubicsquarecreft_resources.res
 
 IF NOT EXIST ..\..\build mkdir ..\..\build
 pushd ..\..\build
+
+REM Resources build
+rc /fo win32_cubicsquarecreft_resources.res ..\cubicsquarecreft\code\win32_cubicsquarecreft_resources.rc
 
 REM 64-bit build
 del *.pdb > NUL 2> NUL

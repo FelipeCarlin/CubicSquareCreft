@@ -5,7 +5,7 @@
   <a href="#screenshots">Screenshots</a> |
   <a href="#features">Features</a> |
   <a href="https://github.com/FelipeCarlin/CubicSquareCreft/wiki">Wiki</a> |
-  <a href="https://github.com/FelipeCarlin/CubicSquareCreft/CONTRIBUTING.md">Contributing</a>
+  <a href="https://github.com/FelipeCarlin/CubicSquareCreft/tree/master/CONTRIBUTING.md">Contributing</a>
 <br/>
 <br/>
 <br/>
@@ -22,13 +22,15 @@ CubicSquareCreft is a voxel game, focused on playability and being intuitive. Th
 
 CSC objectives are:
 
-- Intuitiveness
-- Fun-ness
-- Cepibolla
+* Intuitiveness
+* Fun-ness
+* Cepibolla
 
-# 1.2 How is structured
+## 1.2 How is structured
 
 The game is in the [cubicsquarecreft](https://www.github.com/FelipeCarlin/CubicSquareCreft/tree/master/cubicsquarecreft) folder, inside is a folder with the [source](https://www.github.com/FelipeCarlin/CubicSquareCreft/tree/master/cubicsquarecreft/code), [data](https://www.github.com/FelipeCarlin/CubicSquareCreft/tree/master/cubicsquarecreft/data) that the game uses and [miscellaneous](https://www.github.com/FelipeCarlin/CubicSquareCreft/tree/master/cubicsquarecreft/misc) files.
+
+<br/>
 
 # 2. A story through time
 
@@ -40,10 +42,12 @@ The origin of the project comes from boredom, the need of practice and a lot of 
 
 In reality the game aims:
 
-- Not be complete garbage
-- Be a good OpenGL practice
-- Have documentation for developers and end-users
-- Be a practice for dealing with a mid-term project
+* Not be complete garbage
+* Be a good OpenGL practice
+* Have documentation for developers and end-users
+* Be a practice for dealing with a mid-term project
+
+<br/>
 
 <span name="features"></span>
 
@@ -53,32 +57,37 @@ In reality the game aims:
 
 Things that are no longer in the TODO list:
 
-- None
+* None
 
 ## 3.2 TODO list
 
 A list of stuff that should be worked on:
 
-- (insert something later)
+* (insert something later)
+
+<br/>
 
 # 4. Building
 
-To build the game, first download the source:
+To build the game, you will need to have [Visual Studio 2019](https://visualstudio.microsoft.com/vs/features/cplusplus/) installed.
+First download the source:
 
 ```bash
 git clone --recursive https://github.com/FelipeCarlin/CubicSquareCreft
 cd CubicSquareCreft
 ```
 
-Now run build.bat inside the [scripts](https://github.com/FelipeCarlin/CubicSquareCreft/scripts) folder. After that the executable should be in a folder called `build` in the root folder.
-*Note: The files required for the game to work are in [cubicsquarecreft/data](https://github.com/FelipeCarlin/CubicSquareCreft/cubicsquarecreft/data), so in order to work, the EXE file must me copied into this directory, this will be fixed in the future.
+Now run `build.bat` inside the [scripts](https://github.com/FelipeCarlin/CubicSquareCreft/tree/master/scripts) folder. After that the executable should be in a folder called `build` in the root folder.
+*Note: The files required for the game to work are in [cubicsquarecreft/data](https://github.com/FelipeCarlin/CubicSquareCreft/tree/master/cubicsquarecreft/data), so in order to work, the EXE file must me copied into this directory, this will be fixed in the future.
+
+<br/>
 
 # 5. Details
 
 ## 5.1 Software
 
-- IDE:[GNU Emacs](https://www.gnu.org/software/emacs/)(I know, its old, but I'm trying IDEs)
-- Compiler:[MSVC](https://visualstudio.microsoft.com/vs/features/cplusplus/) The Microsoft C/C++ Compiler
+* IDE: [GNU Emacs](https://www.gnu.org/software/emacs/)(I know, its old, but I'm trying IDEs)
+* Compiler: [MSVC](https://visualstudio.microsoft.com/vs/features/cplusplus/) The Microsoft C/C++ Compiler
 
 ## 5.2. Dependencies
 
@@ -86,10 +95,20 @@ Right now, the game has 0 dependencies :)
 
 ## 5.3 Coding convention
 
-- snake_case for types, e.g.`game_world`
-- camelCase for variables, e.g.`globalRunning`
-- PascalCase for functions and macro functions, e.g.`GameUpdateAudio`
-- UPPER_SNAKE_CASE for macro constants, e.g.`MAX_PATH_BUFFER`
+* Interfaces starts by `I`
+* Abstracts starts by `A`
+* Class names: `UpperCamelCase`
+* Public member variables: `lowerCamelCase`
+* Private member variables: `m_lowerCamelCase`
+* Public static variables: `UpperCamelCase`
+* Private static variables: `_CAPS_LOCK_WITH_UNDERSCORES`
+* Function/Method arguments: `lowerCamelCase`
+* Function/Method names: `UpperCamelCase`
+* Class member variables are located on file bottom
+* Comment your functions, enums, classes, methods
+  Some coding convention could have been forget while redacting this document, so always refer to the existing code base!
+
+<br/>
 
 <span name="screenshots"></span>
 
