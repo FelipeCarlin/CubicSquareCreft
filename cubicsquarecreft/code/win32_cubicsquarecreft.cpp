@@ -35,9 +35,10 @@ typedef double real64;
 #include <malloc.h>
 #include <XInput.h>
 #include <dsound.h>
-#include <gl/gl.h>
 
 #include "win32_cubicsquarecreft.h"
+#include "opengl_cubicsquarecreft.h"
+#include "opengl_cubicsquarecreft.cpp"
 
 // TODO(felipe): This is a global for now
 global_variable bool32 GlobalRunning;
@@ -69,6 +70,9 @@ global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 // NOTE(felipe): DirectSoundCreate
 #define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
 typedef DIRECT_SOUND_CREATE(direct_sound_create);
+
+typedef BOOL WINAPI wgl_swap_interval_ext(int interval);
+global_variable wgl_swap_interval_ext *wglSwapInteval;
 
 void
 CatStrings(size_t SourceACount, char *SourceA,
@@ -400,6 +404,52 @@ internal void Win32InitDSound(HWND Window, int32 SamplesPerSecond, int32 BufferS
     }
 }
 
+internal void
+Win32LoadOpenGL(HWND Window)
+{   
+    HDC DeviceContext = GetDC(Window);
+    
+    PIXELFORMATDESCRIPTOR DesiredPixelFormat = {};
+    DesiredPixelFormat.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+    DesiredPixelFormat.nVersion = 1;
+    DesiredPixelFormat.dwFlags = PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER;
+    DesiredPixelFormat.iPixelType = PFD_TYPE_RGBA;
+    DesiredPixelFormat.cColorBits = 32;
+    DesiredPixelFormat.cRedBits = 0;
+    DesiredPixelFormat.cGreenBits = 0;
+    DesiredPixelFormat.cBlueBits = 0;
+    DesiredPixelFormat.cAlphaBits = 0;
+    DesiredPixelFormat.cDepthBits = 24;
+    DesiredPixelFormat.cStencilBits = 8;
+    DesiredPixelFormat.iLayerType = PFD_MAIN_PLANE;
+
+    int SuggestedPixelFormatIndex = ChoosePixelFormat(DeviceContext, &DesiredPixelFormat);
+    SetPixelFormat(DeviceContext, SuggestedPixelFormatIndex, &DesiredPixelFormat);
+    
+    HGLRC OpenGLRC = wglCreateContext(DeviceContext);
+    if(wglMakeCurrent(DeviceContext, OpenGLRC))
+    {
+        if(LoadOpenGL())
+        {
+            wglSwapInteval = (wgl_swap_interval_ext *)wglGetProcAddress("wglSwapIntervalEXT");
+            if(wglSwapInteval)
+            {
+                wglSwapInteval(1);
+            }
+        }
+        else
+        {
+            // TODO(felipe): Diagnostics.
+        }
+    }
+    else
+    {
+        // TODO(felipe): Diagnostics.
+    }
+    
+    ReleaseDC(Window, DeviceContext);
+}
+
 internal win32_window_dimension
 Win32GetWindowDimension(HWND window)
 {
@@ -452,6 +502,7 @@ internal void Win32ResizeDIBSection(win32_offscreen_buffer *Buffer, int Width, i
 internal void Win32DisplayBufferInWindow(win32_offscreen_buffer *Buffer,
                                          HDC DeviceContext, int WindowWidth, int WindowHeight)
 {
+#if 0
     // TODO(felipe): Aspect ratio correction.
     // TODO(felipe): Play with stretch modes.
     StretchDIBits(DeviceContext,
@@ -459,6 +510,120 @@ internal void Win32DisplayBufferInWindow(win32_offscreen_buffer *Buffer,
                   0, 0, Buffer->Width, Buffer->Height,
                   Buffer->Memory, &Buffer->Info,
                   DIB_RGB_COLORS, SRCCOPY);
+#endif
+
+    glViewport(0, 0, WindowWidth, WindowHeight);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    
+    // OPENGL DEBUG TEST!!
+    //
+    
+    float vertices[] =
+        {
+            -0.5f, -0.5f, 0.0f,
+            0.5f, -0.5f, 0.0f,
+            0.0f,  0.5f, 0.0f
+        };
+
+    unsigned int VBO;
+    glGenBuffers(1, &VBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    const char *vertexShaderSource = "#version 330 core\n"
+        "layout (location = 0) in vec3 aPos;\n"
+        "void main()\n"
+        "{\n"
+        "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+        "}\0";
+    
+    unsigned int vertexShader;
+    vertexShader = glCreateShader(GL_VERTEX_SHADER);
+
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+    
+    int vertexSuccess;
+    char vertexInfoLog[512];
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vertexSuccess);
+    if(!vertexSuccess)
+    {
+        glGetShaderInfoLog(vertexShader, 512, NULL, vertexInfoLog);
+        Assert(!"ERROR::SHADER::VERTEX::COMPILATION_FAILED");
+    }
+
+    const char *fragmentShaderSource = "#version 330 core\n"
+        "out vec4 FragColor;\n"
+        "void main()\n"
+        "{\n"
+        "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+        "}\n";
+
+    unsigned int fragmentShader;
+    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+
+    int fragmentSuccess;
+    char fragmentInfoLog[512];
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fragmentSuccess);
+    if(!fragmentSuccess)
+    {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, fragmentInfoLog);
+        Assert(!"ERROR::SHADER::FRAGMENT::COMPILATION_FAILED");
+    }
+
+    unsigned int shaderProgram;
+    shaderProgram = glCreateProgram();
+    
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
+    int  success;
+    char infoLog[512];
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if(!success)
+    {
+        glGetProgramInfoLog(vertexShader, 512, NULL, infoLog);
+        Assert(!"ERROR::PROGRAM::LINKING");
+    }
+
+    glUseProgram(shaderProgram);
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);  
+    
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    // ..:: Initialization code (done once (unless your object frequently changes)) :: ..
+    // 1. bind Vertex Array Object
+    glBindVertexArray(VAO);
+    // 2. copy our vertices array in a buffer for OpenGL to use
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    // 3. then set our vertex attributes pointers
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0); 
+    
+    glUseProgram(shaderProgram);
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    
+    //
+    //
+
+
+    SwapBuffers(DeviceContext);
 }
 
 internal LRESULT CALLBACK
@@ -948,7 +1113,7 @@ Win32DebugSyncDisplay(win32_offscreen_buffer *BackBuffer,
     }
 }
 
-INT
+INT CALLBACK
 WinMain(HINSTANCE instance,
         HINSTANCE revInstance,
         PSTR commandLine,
@@ -1008,6 +1173,8 @@ WinMain(HINSTANCE instance,
 
         if(Window)
         {
+            Win32LoadOpenGL(Window);
+            
             win32_sound_output SoundOutput = {};
 
             // TODO(felipe): Make this like sixty seconds?
@@ -1232,6 +1399,51 @@ WinMain(HINSTANCE instance,
                         {
                             Game.UpdateAndRender(&GameMemory, NewInput, &Buffer);
                         }
+
+                        // DEBUG CODE
+                        //
+                        //
+                        /*
+                        float vertices[] = {
+                            -0.5f, -0.5f, 0.0f,
+                            0.5f, -0.5f, 0.0f,
+                            0.0f,  0.5f, 0.0f
+                        };
+
+                        unsigned int VBO;
+                        glGenBuffers(1, &VBO);
+                        
+                        glBindBuffer(GL_ARRAY_BUFFER, VBO);  
+
+                        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+                        const char *vertexShaderSource =
+                            R"#version 310 core
+                            layout (location = 0) in vec3 aPos;
+                            void main()
+                            {
+                                gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+                            }";
+
+                        unsigned int vertexShader;
+                        vertexShader = glCreateShader(GL_VERTEX_SHADER);
+
+                        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+                        glCompileShader(vertexShader);
+
+                        int  success;
+                        char infoLog[512];
+                        glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+
+                        if(!success)
+                        {
+                            glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+                            Assert(!"ERROR::SHADER::VERTEX::COMPILATION_FAILED");
+                        }
+                        */
+                        //
+                        //
+                        //
                         
                         LARGE_INTEGER AudioWallClock = Win32GetWallClock();
                         real32 FromBeginToAudioSeconds = Win32GetSecondsElapsed(FlipWallClock, AudioWallClock);

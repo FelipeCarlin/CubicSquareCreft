@@ -69,7 +69,10 @@ A list of stuff that should be worked on:
 
 # 4. Building
 
+## 4.1 Windows
+
 To build the game, you will need to have [Visual Studio 2019](https://visualstudio.microsoft.com/vs/features/cplusplus/) installed.
+
 First download the source:
 
 ```bash
@@ -78,7 +81,7 @@ cd CubicSquareCreft
 ```
 
 Now run `build.bat` inside the [scripts](https://github.com/FelipeCarlin/CubicSquareCreft/tree/master/scripts) folder. After that the executable should be in a folder called `build` in the root folder.
-*Note: The files required for the game to work are in [cubicsquarecreft/data](https://github.com/FelipeCarlin/CubicSquareCreft/tree/master/cubicsquarecreft/data), so in order to work, the EXE file must me copied into this directory, this will be fixed in the future.
+*Note: The files required for the game to work are in [cubicsquarecreft/data](https://github.com/FelipeCarlin/CubicSquareCreft/tree/master/cubicsquarecreft/data), so in order to work, the `win32_cubicsquarecreft.exe` and `cubicsquarecreft.dll` files must me copied into this directory, this will be fixed in the future.
 
 <br/>
 
