@@ -25,11 +25,11 @@ extern "C"
 {
 #endif
 
-struct csc_gl_version
+typedef struct csc_gl_version
 {
     int Major;
     int Minor;
-};
+} csc_gl_version;
 
 // Type definitions
 //
@@ -1256,8 +1256,7 @@ typedef void (APIENTRY *GLVULKANPROCNV)(void);
 #define GL_INVALID_INDEX 0xFFFFFFFF
 
 
-// Function definition
-//
+// Function declaration
 //
 
 

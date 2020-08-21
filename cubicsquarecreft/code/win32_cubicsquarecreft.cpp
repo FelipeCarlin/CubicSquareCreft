@@ -47,6 +47,11 @@ global_variable win32_offscreen_buffer GlobalBackBuffer;
 global_variable LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
 global_variable int64 GlobalPerfCountFrequency;
 
+global_variable unsigned int QuadMeshShader;
+global_variable unsigned int QuadMeshVertexArray;
+global_variable unsigned int QuadMeshTexture;
+global_variable int OpenGLTextureSlots;
+
 // NOTE(felipe): XInputGetState
 #define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE *pState)
 typedef X_INPUT_GET_STATE(x_input_get_state);
@@ -73,6 +78,21 @@ typedef DIRECT_SOUND_CREATE(direct_sound_create);
 
 typedef BOOL WINAPI wgl_swap_interval_ext(int interval);
 global_variable wgl_swap_interval_ext *wglSwapInteval;
+
+internal char *
+StringCopy(char *Destination, const char *Source, uint32 Size)
+{
+   char *Temp;
+   Temp = Destination;  
+   for (uint32 I = 0;
+        I < Size;
+        ++I)
+   {
+      *Destination++ = *Source++;
+   }
+
+   return Temp;
+}
 
 void
 CatStrings(size_t SourceACount, char *SourceA,
@@ -431,6 +451,8 @@ Win32LoadOpenGL(HWND Window)
     {
         if(LoadOpenGL())
         {
+            glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &OpenGLTextureSlots);
+            
             wglSwapInteval = (wgl_swap_interval_ext *)wglGetProcAddress("wglSwapIntervalEXT");
             if(wglSwapInteval)
             {
@@ -512,118 +534,26 @@ internal void Win32DisplayBufferInWindow(win32_offscreen_buffer *Buffer,
                   DIB_RGB_COLORS, SRCCOPY);
 #endif
 
-    glViewport(0, 0, WindowWidth, WindowHeight);
+    SwapBuffers(DeviceContext);
+}
+
+internal void
+RenderGame(int Width, int Height)
+{
+    // TODO(felipe): FIX!!!
+    glViewport(0, 0, Width, Height);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-
     
-    // OPENGL DEBUG TEST!!
-    //
     
-    float vertices[] =
-        {
-            -0.5f, -0.5f, 0.0f,
-            0.5f, -0.5f, 0.0f,
-            0.0f,  0.5f, 0.0f
-        };
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    const char *vertexShaderSource = "#version 330 core\n"
-        "layout (location = 0) in vec3 aPos;\n"
-        "void main()\n"
-        "{\n"
-        "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-        "}\0";
-    
-    unsigned int vertexShader;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-    
-    int vertexSuccess;
-    char vertexInfoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vertexSuccess);
-    if(!vertexSuccess)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, vertexInfoLog);
-        Assert(!"ERROR::SHADER::VERTEX::COMPILATION_FAILED");
-    }
-
-    const char *fragmentShaderSource = "#version 330 core\n"
-        "out vec4 FragColor;\n"
-        "void main()\n"
-        "{\n"
-        "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-        "}\n";
-
-    unsigned int fragmentShader;
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-
-    int fragmentSuccess;
-    char fragmentInfoLog[512];
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fragmentSuccess);
-    if(!fragmentSuccess)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, fragmentInfoLog);
-        Assert(!"ERROR::SHADER::FRAGMENT::COMPILATION_FAILED");
-    }
-
-    unsigned int shaderProgram;
-    shaderProgram = glCreateProgram();
-    
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    int  success;
-    char infoLog[512];
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if(!success)
-    {
-        glGetProgramInfoLog(vertexShader, 512, NULL, infoLog);
-        Assert(!"ERROR::PROGRAM::LINKING");
-    }
-
-    glUseProgram(shaderProgram);
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);  
-    
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    // ..:: Initialization code (done once (unless your object frequently changes)) :: ..
-    // 1. bind Vertex Array Object
-    glBindVertexArray(VAO);
-    // 2. copy our vertices array in a buffer for OpenGL to use
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    // 3. then set our vertex attributes pointers
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0); 
-    
-    glUseProgram(shaderProgram);
-    glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    
-    //
-    //
-
-
-    SwapBuffers(DeviceContext);
+    glUseProgram(QuadMeshShader);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, QuadMeshTexture);
+    glBindVertexArray(QuadMeshVertexArray);
+    glDrawElements(GL_TRIANGLE_FAN, 6, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
 }
 
 internal LRESULT CALLBACK
@@ -634,6 +564,18 @@ Win32MainWindowCallback(HWND Window, UINT Message,
 
     switch(Message)
     {
+        case WM_SIZE:
+        {
+            RECT ClientRect;
+            GetClientRect(Window, &ClientRect);
+            int Width = ClientRect.right - ClientRect.left;
+            int Height = ClientRect.bottom - ClientRect.top;
+            if(GlobalRunning)
+            {
+                RenderGame(Width, Height);
+            }
+        } break;
+        
         case WM_CLOSE:
         {
             // TODO(felipe): Handle this with a message to the user?
@@ -642,16 +584,6 @@ Win32MainWindowCallback(HWND Window, UINT Message,
 
         case WM_ACTIVATEAPP:
         {
-#if 0
-            if(WParam == TRUE)
-            {
-                SetLayeredWindowAttributes(Window, RGB(0, 0, 0), 255, LWA_ALPHA);
-            }
-            else
-            {
-                SetLayeredWindowAttributes(Window, RGB(0, 0, 0), 64, LWA_ALPHA);
-            }
-#endif
         } break;
 
         case WM_DESTROY:
@@ -1239,6 +1171,149 @@ WinMain(HINSTANCE instance,
 
                 win32_game_code Game = Win32LoadGameCode(SourceGameCodeDLLFullPath,
                                                          TempGameCodeDLLFullPath);
+
+                float vertices[] =
+                    {
+                        // positions          // texture coords
+                         1.0f,  1.0f, 0.0f,   1.0f, 1.0f,   // top right
+                         1.0f, -1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+                        -1.0f, -1.0f, 0.0f,   0.0f, 0.0f,   // bottom left
+                        -1.0f,  1.0f, 0.0f,   0.0f, 1.0f    // top left 
+                    };
+
+                unsigned int indices[] =
+                    {  
+                        0, 1, 2,   // first triangle
+                        2, 3, 0    // second triangle
+                    };
+
+                unsigned int VBO;
+                glGenBuffers(1, &VBO);
+                glBindBuffer(GL_ARRAY_BUFFER, VBO);
+                glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+                unsigned int EBO;
+                glGenBuffers(1, &EBO);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW); 
+
+                char *vertexShaderSource = (char *)DEBUGPlatformReadEntireFile("shaders/vertex.glsl").Contents;
+    
+                unsigned int vertexShader;
+                vertexShader = glCreateShader(GL_VERTEX_SHADER);
+
+                glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+                glCompileShader(vertexShader);
+    
+                int vertexSuccess;
+                char vertexInfoLog[512];
+                glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vertexSuccess);
+                if(!vertexSuccess)
+                {
+                    glGetShaderInfoLog(vertexShader, 512, NULL, vertexInfoLog);
+                    Assert(!"ERROR::SHADER::VERTEX::COMPILATION_FAILED");
+                }
+    
+                char *fragmentShaderSource = (char *)DEBUGPlatformReadEntireFile("shaders/fragment.glsl").Contents;
+    
+                unsigned int fragmentShader;
+                fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+                glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+                glCompileShader(fragmentShader);
+
+                int fragmentSuccess;
+                char fragmentInfoLog[512];
+                glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fragmentSuccess);
+                if(!fragmentSuccess)
+                {
+                    glGetShaderInfoLog(fragmentShader, 512, NULL, fragmentInfoLog);
+                    Assert(!"ERROR::SHADER::FRAGMENT::COMPILATION_FAILED");
+                }
+
+                QuadMeshShader = glCreateProgram();
+    
+                glAttachShader(QuadMeshShader, vertexShader);
+                glAttachShader(QuadMeshShader, fragmentShader);
+                glLinkProgram(QuadMeshShader);
+
+                int  success;
+                char infoLog[512];
+                glGetProgramiv(QuadMeshShader, GL_LINK_STATUS, &success);
+                if(!success)
+                {
+                    glGetProgramInfoLog(vertexShader, 512, NULL, infoLog);
+                    Assert(!"ERROR::PROGRAM::LINKING");
+                }
+
+                glUseProgram(QuadMeshShader);
+
+                glDeleteShader(vertexShader);
+                glDeleteShader(fragmentShader);
+    
+                glGenVertexArrays(1, &QuadMeshVertexArray);
+                glBindVertexArray(QuadMeshVertexArray);
+
+                // Load Brick.bmp
+                //
+                
+                debug_read_file_result Bitmap = DEBUGPlatformReadEntireFile("textures/wall.bmp");
+                char Header[54];
+                StringCopy(Header, (char *)Bitmap.Contents, 54);
+                if(Header[0] == 'B' &&
+                   Header[1] == 'M')
+                {
+                    uint64 DataPos = *(int*) & (Header[0x0A]);
+                    uint32 ImageSize = *(int*) & (Header[0x22]);
+                    uint32 Width = *(int*) & (Header[0x12]);
+                    uint32 Height = *(int*) & (Header[0x16]);
+                    uint32 BitsPerPixel = *(int *) & (Header[0x1C]);
+
+                    if(ImageSize == 0)
+                    {
+                        ImageSize = Width * Height * 3;
+                    }
+        
+                    if (DataPos == 0)
+                    {
+                        DataPos = 54;
+                    }
+
+                    unsigned char *Data;
+
+                    Data = ((unsigned char *)Bitmap.Contents + DataPos);
+
+                    glGenTextures(1, &QuadMeshTexture);
+                    glBindTexture(GL_TEXTURE_2D, QuadMeshTexture);
+
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);   
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_BGRA, GL_UNSIGNED_BYTE, (void *)Data);
+                    
+                    int TextureShaderLocation = glGetUniformLocation(QuadMeshShader, "Bitmap");
+                    glUseProgram(QuadMeshShader);
+                    glUniform1i(TextureShaderLocation, 0);
+                }
+                else
+                {
+                    // TODO(felipe): Logging
+                }
+
+                //
+                //
+
+                glBindVertexArray(QuadMeshVertexArray);
+                glBindBuffer(GL_ARRAY_BUFFER, VBO);
+                glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+                glEnableVertexAttribArray(0);
+                glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3*sizeof(float)));
+                glEnableVertexAttribArray(1);
+
                 
                 uint64 LastCycleCount = __rdtsc();
                 while(GlobalRunning)
@@ -1396,54 +1471,15 @@ WinMain(HINSTANCE instance,
                             Win32PlayBackInput(&State, NewInput);
                         }
                         if(Game.UpdateAndRender)
-                        {
+                        {   
                             Game.UpdateAndRender(&GameMemory, NewInput, &Buffer);
                         }
 
-                        // DEBUG CODE
-                        //
-                        //
-                        /*
-                        float vertices[] = {
-                            -0.5f, -0.5f, 0.0f,
-                            0.5f, -0.5f, 0.0f,
-                            0.0f,  0.5f, 0.0f
-                        };
-
-                        unsigned int VBO;
-                        glGenBuffers(1, &VBO);
-                        
-                        glBindBuffer(GL_ARRAY_BUFFER, VBO);  
-
-                        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-                        const char *vertexShaderSource =
-                            R"#version 310 core
-                            layout (location = 0) in vec3 aPos;
-                            void main()
-                            {
-                                gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-                            }";
-
-                        unsigned int vertexShader;
-                        vertexShader = glCreateShader(GL_VERTEX_SHADER);
-
-                        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-                        glCompileShader(vertexShader);
-
-                        int  success;
-                        char infoLog[512];
-                        glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-
-                        if(!success)
-                        {
-                            glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-                            Assert(!"ERROR::SHADER::VERTEX::COMPILATION_FAILED");
-                        }
-                        */
-                        //
-                        //
-                        //
+                        RECT ClientRect;
+                        GetClientRect(Window, &ClientRect);
+                        int Width = ClientRect.right - ClientRect.left;
+                        int Height = ClientRect.bottom - ClientRect.top;
+                        RenderGame(Width, Height);
                         
                         LARGE_INTEGER AudioWallClock = Win32GetWallClock();
                         real32 FromBeginToAudioSeconds = Win32GetSecondsElapsed(FlipWallClock, AudioWallClock);
@@ -1533,7 +1569,7 @@ WinMain(HINSTANCE instance,
                             SoundBuffer.Samples = Samples;
                             if(Game.GetSoundSamples)
                             {
-                            Game.GetSoundSamples(&GameMemory, &SoundBuffer);
+                                Game.GetSoundSamples(&GameMemory, &SoundBuffer);
                             }
                             
 #if CSC_INTERNAL

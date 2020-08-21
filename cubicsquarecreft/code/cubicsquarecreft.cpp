@@ -39,54 +39,8 @@ GameOutputSound(game_state *GameState, game_sound_output_buffer *SoundBuffer, in
 }
 
 internal void
-RenderWierdGradient(game_offscreen_buffer *Buffer, int XOffset, int YOffset)
+Render(game_offscreen_buffer *Buffer)
 {
-    // TODO(felipe): Let's see what the optimazer does.
-    
-    uint8* Row = (uint8*)Buffer->Memory;
-
-    for(int y = 0; y < Buffer->Height; y++)
-    {
-        uint32* Pixel = (uint32*)Row;
-
-        for(int x = 0; x < Buffer->Width; x++)
-        {
-            uint8 Blue = (uint8)(x + XOffset);
-            uint8 Green = (uint8)(y + YOffset);
-
-            *Pixel++ = ((Green << 16) | Blue);
-        }
-
-        Row += Buffer->Pitch;
-    }
-}
-
-internal void
-RenderPlayer(game_offscreen_buffer *Buffer, int PlayerX, int PlayerY)
-{
-    uint8 *EndOfBuffer = (uint8 *)Buffer->Memory + Buffer->Pitch*Buffer->Height;
-    
-    uint32 Color = 0xFFFFFFFF;
-    int Top = PlayerY;
-    int Bottom = PlayerY+10;
-    for(int X = PlayerX;
-        X < PlayerX+10;
-        ++X)
-    {
-        uint8 *Pixel = ((uint8 *)Buffer->Memory +
-                        X*Buffer->BytesPerPixel +
-                        Top*Buffer->Pitch);
-        for(int Y = Top;
-            Y < Bottom;
-            ++Y)
-        {
-            if((Pixel >= Buffer->Memory) &&
-               ((Pixel + 4) <= EndOfBuffer))
-            *(uint32 *)Pixel = Color;
-        }
-        
-        Pixel += Buffer->Pitch;
-    }
 } 
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
@@ -116,8 +70,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             // NOTE(felipe): Use digital movement tuning.
         }
 
-
     }
+
+    Render(Buffer);
     
     //RenderWierdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
     //RenderPlayer(Buffer, GameState->PlayerX, GameState->PlayerY);

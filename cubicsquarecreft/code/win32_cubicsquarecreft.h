@@ -7,6 +7,7 @@
    $Notice: $
    ======================================================================== */
 
+
 struct win32_offscreen_buffer
 {
     // NOTE(felipe): Pixels are always 32-bit size, memory order GG BB RR XX.

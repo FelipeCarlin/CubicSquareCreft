@@ -8,6 +8,9 @@
 
 #include "opengl_cubicsquarecreft.h"
 
+// TODO(felipe): Implement sscanf myself.
+#include <stdio.h>
+
 static HMODULE OpenGLDLL;
 static csc_gl_version GLVersion;
 static int OpenGLLoadedMajor;
