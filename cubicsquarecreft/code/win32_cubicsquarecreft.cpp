@@ -1045,6 +1045,72 @@ Win32DebugSyncDisplay(win32_offscreen_buffer *BackBuffer,
     }
 }
 
+internal uint32
+OpenGLLoadImageTexure(char *Filepath)
+{
+    uint32 Result = 0;
+    
+    debug_read_file_result Bitmap = DEBUGPlatformReadEntireFile(Filepath);
+    char Header[54];
+    StringCopy(Header, (char *)Bitmap.Contents, 54);
+    if(Header[0] == 'B' &&
+       Header[1] == 'M')
+    {
+        uint64 DataPos = *(int*) & (Header[0x0A]);
+        uint32 ImageSize = *(int*) & (Header[0x22]);
+        uint32 Width = *(int*) & (Header[0x12]);
+        uint32 Height = *(int*) & (Header[0x16]);
+        uint32 BitsPerPixel = *(int *) & (Header[0x1C]);
+
+        if(ImageSize == 0)
+        {
+            ImageSize = Width * Height * 3;
+        }
+        
+        if (DataPos == 0)
+        {
+            DataPos = 54;
+        }
+
+        uint32 Format;
+        if(BitsPerPixel == 24)
+        {
+            Format = GL_BGR;
+//          Format = GL_RGB;
+        }
+        else if(BitsPerPixel == 32)
+        {
+            Format = GL_BGRA;
+//          Format = GL_RGBA;
+        }
+        else
+        {
+            // TODO(felipe): Logging.
+            Format = GL_RGB;
+        }
+
+        unsigned char *Data;
+
+        Data = ((unsigned char *)Bitmap.Contents + DataPos);
+
+        glGenTextures(1, &Result);
+        glBindTexture(GL_TEXTURE_2D, Result);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);   
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, Format, GL_UNSIGNED_BYTE, (void *)Data);
+    }
+    else
+    {
+        // TODO(felipe): Logging
+    }
+
+    return Result;
+}
+
 INT CALLBACK
 WinMain(HINSTANCE instance,
         HINSTANCE revInstance,
@@ -1252,57 +1318,13 @@ WinMain(HINSTANCE instance,
     
                 glGenVertexArrays(1, &QuadMeshVertexArray);
                 glBindVertexArray(QuadMeshVertexArray);
-
-                // Load Brick.bmp
                 //
+                //
+                QuadMeshTexture = OpenGLLoadImageTexure("textures/mario.bmp");
                 
-                debug_read_file_result Bitmap = DEBUGPlatformReadEntireFile("textures/wall.bmp");
-                char Header[54];
-                StringCopy(Header, (char *)Bitmap.Contents, 54);
-                if(Header[0] == 'B' &&
-                   Header[1] == 'M')
-                {
-                    uint64 DataPos = *(int*) & (Header[0x0A]);
-                    uint32 ImageSize = *(int*) & (Header[0x22]);
-                    uint32 Width = *(int*) & (Header[0x12]);
-                    uint32 Height = *(int*) & (Header[0x16]);
-                    uint32 BitsPerPixel = *(int *) & (Header[0x1C]);
-
-                    if(ImageSize == 0)
-                    {
-                        ImageSize = Width * Height * 3;
-                    }
-        
-                    if (DataPos == 0)
-                    {
-                        DataPos = 54;
-                    }
-
-                    unsigned char *Data;
-
-                    Data = ((unsigned char *)Bitmap.Contents + DataPos);
-
-                    glGenTextures(1, &QuadMeshTexture);
-                    glBindTexture(GL_TEXTURE_2D, QuadMeshTexture);
-
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);   
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_BGRA, GL_UNSIGNED_BYTE, (void *)Data);
-                    
-                    int TextureShaderLocation = glGetUniformLocation(QuadMeshShader, "Bitmap");
-                    glUseProgram(QuadMeshShader);
-                    glUniform1i(TextureShaderLocation, 0);
-                }
-                else
-                {
-                    // TODO(felipe): Logging
-                }
-
-                //
-                //
+                int TextureShaderLocation = glGetUniformLocation(QuadMeshShader, "Bitmap");
+                glUseProgram(QuadMeshShader);
+                glUniform1i(TextureShaderLocation, 0);
 
                 glBindVertexArray(QuadMeshVertexArray);
                 glBindBuffer(GL_ARRAY_BUFFER, VBO);
